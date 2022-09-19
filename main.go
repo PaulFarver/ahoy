@@ -135,7 +135,6 @@ func main() {
 	}
 	rdb = redis.NewClient(opt)
 
-	// http.Handle("/index.html",  )
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(index))
 	})
