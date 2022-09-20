@@ -1,5 +1,10 @@
 window.addEventListener("DOMContentLoaded", (_) => {
-  let websocket = new WebSocket("ws://" + window.location.host + "/websocket");
+  // Detect if we have ssl
+  const protocol = window.location.protocol;
+  const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+  let websocket = new WebSocket(
+    wsProtocol + "//" + window.location.host + "/websocket"
+  );
   let room = document.getElementById("chat-text");
 
   websocket.addEventListener("message", function (e) {
