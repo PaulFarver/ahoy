@@ -15,12 +15,14 @@ If you feel lost or confused, don't hesitate to ask or look for solutions online
 - kubectl `brew install kubernetes-cli`
 - aws `brew install aws-cli`
 
+Fork this repository, and work from there
+
 ## 0. Getting aboard (Running locally)
 
 The chat server relies on a connection to a redis server in order to send messages.  
 We can use the public docker image for redis to test out the server locally: https://hub.docker.com/_/redis
 
-> Start redis server locally and expose it's port, so you can try out the chat server
+> TASK: Start a redis server locally and expose it's port, so you can try out the chat server
 
 you can start the chat server with `go run main.go`
 
@@ -29,7 +31,7 @@ you can start the chat server with `go run main.go`
 Our next order of business is to get our go server to run in a docker container.  
 For that we will need to build a docker image, so that we have something to base our container on.
 
-> Write a dockerfile, that builds the go server
+> TASK: Write a dockerfile, that builds the go server
 
 You can build a docker image from a Dockerfile with `docker build .`
 
@@ -39,8 +41,7 @@ A solution for orchestration when running docker containers locally is docker co
 We can use docker compose to define and run multiple containers in a single file rather
 than having to run complicated `docker run` commands all the time.
 
-> Write a docker-compose.yml file and run the chat and redis servers with `docker compose up`
->
+> TASK: Write a docker-compose.yml file and run the chat and redis servers with `docker compose up`
 > > BONUS: What do the following terms mean in docker: image, container, repository, tag and registry
 
 ## 3. Setting sail (Running in kubernetes)
@@ -99,7 +100,7 @@ hello, mom
 
 Where we can see that the container indeed did as we asked.
 
-> Write a pod manifest containing a redis and a chat server, and apply it to kubernetes
+> TASK: Write a pod manifest containing a redis and a chat server, and apply it to kubernetes
 
 You'll have to push your docker image to a docker registry. You can use ttl.sh simply with
 
