@@ -165,7 +165,7 @@ module "irsa_vpc_cni" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.4.0"
 
-  role_name = "vpc-cni"
+  role_name = "${local.name}_vpc_cni"
   role_path = "/${module.eks.cluster_id}/irsa/"
 
   attach_vpc_cni_policy = true
@@ -277,7 +277,7 @@ module "irsa_external_dns" {
   version = "5.4.0"
 
   role_path = "/${module.eks.cluster_id}/irsa/"
-  role_name = "external-dns"
+  role_name = "${local.name}_external_dns"
 
   attach_external_dns_policy = true
   # external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/*"] # Default value
@@ -401,6 +401,139 @@ resource "helm_release" "metrics_server" {
   }
   set {
     name  = "resources.requests.ephemeral-storage"
+    value = "500Ki"
+  }
+}
+
+################################################################################
+# Cert manager
+################################################################################
+module "irsa_cert_manager" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.4.0"
+
+  role_path = "/${module.eks.cluster_id}/irsa/"
+  role_name = "${local.name}_cert_manager"
+
+  attach_cert_manager_policy = true
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["cert-manager:cert-manager"]
+    }
+  }
+}
+resource "helm_release" "cert_manager" {
+  namespace        = "cert-manager"
+  create_namespace = true
+
+  name       = "cert-manager"
+  repository = "https://charts.jetstack.io"
+  chart      = "cert-manager"
+  version    = "v1.9.1"
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.irsa_cert_manager.iam_role_arn
+  }
+
+  set {
+    name  = "securityContext.fsGroup"
+    value = "1001"
+  }
+
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+
+  set {
+    name  = "resources.limits.memory"
+    value = "400Mi"
+  }
+  set {
+    name  = "resources.requests.memory"
+    value = "400Mi"
+  }
+  set {
+    name  = "resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "webhook.resources.limits.memory"
+    value = "100Mi"
+  }
+  set {
+    name  = "webhook.resources.requests.memory"
+    value = "100Mi"
+  }
+  set {
+    name  = "webhook.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "cainjector.resources.limits.memory"
+    value = "650Mi"
+  }
+  set {
+    name  = "cainjector.resources.requests.memory"
+    value = "650Mi"
+  }
+  set {
+    name  = "cainjector.resources.requests.cpu"
+    value = "50m"
+  }
+}
+
+################################################################################
+# Nginx ingress
+################################################################################
+resource "helm_release" "nginx_ingress" {
+  namespace        = "ingress-nginx"
+  create_namespace = true
+
+  name       = "ingress-nginx"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  chart      = "ingress-nginx"
+  version    = "4.2.5"
+
+  set {
+    name  = "controller.replicaCount"
+    value = "3"
+  }
+
+  set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+    value = "nlb"
+  }
+  set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-cross-zone-load-balancing-enabled"
+    value = "true"
+    type  = "string"
+  }
+
+  set {
+    name  = "controller.ingressClassResource.default"
+    value = "true"
+
+  }
+
+  set {
+    name  = "controller.resources.limits.memory"
+    value = "400Mi"
+  }
+  set {
+    name  = "controller.resources.requests.memory"
+    value = "400Mi"
+  }
+  set {
+    name  = "controller.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "controller.resources.requests.ephemeral-storage"
     value = "500Ki"
   }
 }
