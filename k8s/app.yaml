@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: chat
-          image: ttl.sh/ahmae1jeiyapiemeiguobaf6ue8ju0vae4hoh9ji6gieng4uoc9ael3iewai5joh:1h
+          image: ttl.sh/thaekaifu8ousha1pho1heemaengaecha7oozod7ohphae4thahv5emoocoh6yae:2h
           resources:
             limits:
               memory: "128Mi"
@@ -56,7 +56,7 @@ metadata:
   annotations:
     kubernetes.io/tls-acme: "true"
     cert-manager.io/cluster-issuer: letsencrypt
-    
+
     # nginx.ingress.kubernetes.io/ssl-redirect: "true"
     # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     # nginx.ingress.kubernetes.io/rewrite-target: /
