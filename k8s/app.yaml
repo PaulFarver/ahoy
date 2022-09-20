@@ -18,36 +18,64 @@ spec:
         app: ahoy-chat
     spec:
       containers:
-      - name: chat
-        image: ttl.sh/ahmae1jeiyapiemeiguobaf6ue8ju0vae4hoh9ji6gieng4uoc9ael3iewai5joh:1h
-        resources:
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
-        env:
-          - name: REDIS_URL
-            value: redis://redis:6379
-          - name: PORT
-            value: "8080"
-        ports:
-        - containerPort: 8080
-          name: chat
+        - name: chat
+          image: ttl.sh/ahmae1jeiyapiemeiguobaf6ue8ju0vae4hoh9ji6gieng4uoc9ael3iewai5joh:1h
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: REDIS_URL
+              value: redis://redis:6379
+            - name: PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+              name: chat
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: ahoy-chat
   namespace: chat
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: chat.ahoy.wiseflow.io
 spec:
   selector:
     app: ahoy-chat
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: chat
-  type: LoadBalancer
+    - protocol: TCP
+      port: 80
+      targetPort: chat
+      name: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ahoy-chat
+  namespace: chat
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - talk.ahoy.wiseflow.io
+      secretName: chat-tls
+  rules:
+    - host: talk.ahoy.wiseflow.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ahoy-chat
+                port:
+                  name: http
 ---
 # Persistent volume claim
 apiVersion: v1
@@ -107,8 +135,6 @@ kind: Service
 metadata:
   name: redis
   namespace: chat
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: redis.ahoy.wiseflow.io
 spec:
   type: ClusterIP
   ports:
@@ -117,4 +143,3 @@ spec:
       protocol: TCP
   selector:
     app: redis
-

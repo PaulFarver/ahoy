@@ -117,6 +117,14 @@ module "eks" {
       type        = "ingress"
       self        = true
     }
+    egress_dns = {
+      description = "Allow egress DNS"
+      protocol    = "udp"
+      from_port   = 53
+      to_port     = 53
+      type        = "egress"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
     # egress_all = {
     #   description = "Allow all egress"
     #   protocol    = "-1"
@@ -504,10 +512,6 @@ resource "helm_release" "nginx_ingress" {
     value = "3"
   }
 
-  set {
-    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
-    value = "nlb"
-  }
   set {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-cross-zone-load-balancing-enabled"
     value = "true"
