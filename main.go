@@ -17,6 +17,7 @@ import (
 type ChatMessage struct {
 	Username string `json:"username"`
 	Text     string `json:"text"`
+	Time     string `json:"time"`
 }
 
 var rdb *redis.Client
