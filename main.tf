@@ -90,15 +90,41 @@ module "eks" {
     }
   }
 
+  cluster_security_group_additional_rules = {}
+
   node_security_group_additional_rules = {
-    ingress_karpenter_webhook_tcp = {
-      description                   = "Control plane invoke Karpenter webhook"
-      protocol                      = "tcp"
-      from_port                     = 8443
-      to_port                       = 8443
+    # ingress_karpenter_webhook_tcp = { # Covered by rule below
+    #   description                   = "Control plane invoke Karpenter webhook"
+    #   protocol                      = "tcp"
+    #   from_port                     = 8443
+    #   to_port                       = 8443
+    #   type                          = "ingress"
+    #   source_cluster_security_group = true
+    # }
+    ingress_all_from_cluster_api = {
+      description                   = "Allow traffic from cluster api servers"
+      protocol                      = "-1"
+      from_port                     = 0
+      to_port                       = 0
       type                          = "ingress"
       source_cluster_security_group = true
     }
+    node_to_node = {
+      description = "Node to node communication"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+    # egress_all = {
+    #   description = "Allow all egress"
+    #   protocol    = "-1"
+    #   from_port   = 0
+    #   to_port     = 0
+    #   type        = "egress"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
   }
 
   node_security_group_tags = {
@@ -348,3 +374,34 @@ resource "kubernetes_storage_class_v1" "gp3" {
     "type" = "gp3"
   }
 }
+
+################################################################################
+# Metrics server
+################################################################################
+resource "helm_release" "metrics_server" {
+  namespace        = "metrics"
+  create_namespace = true
+
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  version    = "3.8.2"
+
+  set {
+    name  = "resources.limits.memory"
+    value = "200Mi"
+  }
+  set {
+    name  = "resources.requests.memory"
+    value = "200Mi"
+  }
+  set {
+    name  = "resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "resources.requests.ephemeral-storage"
+    value = "500Ki"
+  }
+}
+
