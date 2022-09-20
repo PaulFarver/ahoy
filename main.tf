@@ -117,6 +117,14 @@ module "eks" {
       type        = "ingress"
       self        = true
     }
+    node_to_node_egress = {
+      description = "Node to node communication"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "egress"
+      self        = true
+    }
     egress_dns = {
       description = "Allow egress DNS"
       protocol    = "udp"
