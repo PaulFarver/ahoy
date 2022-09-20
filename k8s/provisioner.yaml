@@ -1,0 +1,26 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: default
+spec:
+  limits:
+    resources:
+      cpu: "16"
+      memory: 64Gi
+  provider:
+    securityGroupSelector:
+      karpenter.sh/discovery: ahoy
+    subnetSelector:
+      karpenter.sh/discovery: ahoy
+    tags:
+      karpenter.sh/discovery: ahoy
+  requirements:
+  - key: karpenter.sh/capacity-type
+    operator: In
+    values:
+    - spot
+  - key: kubernetes.io/arch
+    operator: In
+    values:
+    - amd64
+  ttlSecondsAfterEmpty: 30
