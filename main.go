@@ -123,7 +123,7 @@ var appjs string
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println(err)
 	}
 
 	port := os.Getenv("PORT")
