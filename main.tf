@@ -152,36 +152,29 @@ module "irsa_vpc_cni" {
   }
 }
 
-module "irsa_ebs_csi" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.4.0"
 
-  role_path = "/${module.eks.cluster_id}/irsa/"
-  role_name = "ebs_csi"
 
-  attach_ebs_csi_policy = true
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
-    }
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--profile", local.aws_profile, "--cluster-name", module.eks.cluster_id]
   }
 }
 
-module "irsa_external_dns" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.4.0"
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
 
-  role_path = "/${module.eks.cluster_id}/irsa/"
-  role_name = "external-dns"
-
-  attach_external_dns_policy = true
-  # external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/*"] # Default value
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["external-dns:external-dns"]
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      # This requires the awscli to be installed locally where Terraform is executed
+      args = ["eks", "get-token", "--profile", local.aws_profile, "--cluster-name", module.eks.cluster_id]
     }
   }
 }
@@ -209,31 +202,6 @@ module "karpenter_irsa" {
     ex = {
       provider_arn               = module.eks.oidc_provider_arn
       namespace_service_accounts = ["karpenter:karpenter"]
-    }
-  }
-}
-
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--profile", local.aws_profile, "--cluster-name", module.eks.cluster_id]
-  }
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      # This requires the awscli to be installed locally where Terraform is executed
-      args = ["eks", "get-token", "--profile", local.aws_profile, "--cluster-name", module.eks.cluster_id]
     }
   }
 }
@@ -275,6 +243,27 @@ resource "helm_release" "karpenter" {
   wait = true
 }
 
+################################################################################
+# External DNS
+################################################################################
+module "irsa_external_dns" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.4.0"
+
+  role_path = "/${module.eks.cluster_id}/irsa/"
+  role_name = "external-dns"
+
+  attach_external_dns_policy = true
+  # external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/*"] # Default value
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["external-dns:external-dns"]
+    }
+  }
+}
+
 resource "helm_release" "external_dns" {
   namespace        = "external-dns"
   create_namespace = true
@@ -310,6 +299,25 @@ resource "helm_release" "external_dns" {
   set {
     name  = "extraArgs[0]"
     value = "--annotation-filter=external-dns.alpha.kubernetes.io/exclude notin (true)"
+  }
+}
+
+################################################################################
+# EBS CSI
+################################################################################
+module "irsa_ebs_csi" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.4.0"
+
+  role_path = "/${module.eks.cluster_id}/irsa/"
+  role_name = "ebs_csi"
+
+  attach_ebs_csi_policy = true
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
+    }
   }
 }
 
