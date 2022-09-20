@@ -405,3 +405,53 @@ resource "helm_release" "metrics_server" {
   }
 }
 
+# module "iam_ahoy_group" {
+#   source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
+#   version = "5.4.0"
+
+#   name = "skippers"
+
+#   attach_iam_self_management_policy = false
+#   custom_group_policies = [
+#     {
+#       name = "skip"
+#       policy = jsonencode({
+#         Version = "2012-10-17"
+#         Statement = [
+#           {
+#             Effect = "Allow"
+#             Action = [
+#               "eks:DescribeCluster",
+#             ],
+#             Resource = [
+#               module.eks.cluster_arn
+#             ]
+#           }
+#         ]
+#       })
+#     }
+#   ]
+
+#   group_users = [
+#     module.iam_skipper_user.iam_user_name
+#   ]
+# }
+
+# module "iam_skipper_user" {
+#   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+#   version = "5.4.0"
+
+#   create_iam_user_login_profile = false
+
+#   name = "team-1"
+#   path = "/${local.name}/"
+# }
+
+# output "iam-user-key" {
+#   value = module.iam_skipper_user.iam_access_key_id
+# }
+
+# output "iam-user-secret" {
+#   value     = module.iam_skipper_user.iam_access_key_secret
+#   sensitive = true
+# }
