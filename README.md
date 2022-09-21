@@ -42,9 +42,12 @@ We can use docker compose to define and run multiple containers in a single file
 than having to run complicated `docker run` commands all the time.
 
 > TASK: Write a docker-compose.yml file and run the chat and redis servers with `docker compose up`
+>
 > > BONUS: What do the following terms mean in docker: image, container, repository, tag and registry
 
 ## 3. Setting sail (Running in kubernetes)
+
+### Intro
 
 Kubernetes is a great solution for orchestration in the cloud.  
 Similarly to docker compose, it allows us to define a set of containers we want to run.  
@@ -52,6 +55,24 @@ The difference is that we don't have to manually tell kubernetes to start the co
 We simply give kubernetes our manifest, and kubernetes will continuously try to make sure that the containers are running somewhere on some maching.  
 Kubernetes does not operate directly on containers, though. Instead it manages what it calls Pods.  
 Pods are a collection of containers along with some metadata attached to them.
+
+### Getting access to the ahoy cluster
+
+replace TEAMNAME with your team names in the commands below
+
+```sh
+$ lpass show Shared-WISEflow-Development/ahoy/TEAMNAME.csv --notes | aws configure import --csv file:///dev/stdin
+Successfully imported 1 profile(s)
+$ aws eks update-kubeconfig --name ahoy --alias ahoy --profile TEAMNAME --region eu-west-1
+```
+
+You can verify that you have access by running
+
+```sh
+$ kubectl get namespaces
+```
+
+### Examples
 
 A simple manifest with a pod could look like this:
 
@@ -99,6 +120,8 @@ hello, mom
 ```
 
 Where we can see that the container indeed did as we asked.
+
+### Exercise
 
 > TASK: Write a pod manifest containing a redis and a chat server, and apply it to kubernetes
 
