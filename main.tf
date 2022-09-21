@@ -1,6 +1,15 @@
 locals {
   name        = "ahoy"
   aws_profile = "dev"
+  # Named after famous captains
+  teams = [
+    "tordenskjold",
+    "nelson",
+    "sinbad",
+    "kirk",
+    "rackham",
+    "haddock",
+  ]
 }
 
 terraform {
@@ -169,12 +178,38 @@ module "eks" {
       userarn  = "arn:aws:iam::100465710106:user/paul.farver@uniwise.dk"
       username = "paul"
       groups   = ["system:masters"]
-    }
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/tordenskjold"
+      username = "tordenskjold"
+      groups   = ["system:authenticated"]
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/nelson"
+      username = "nelson"
+      groups   = ["system:authenticated"]
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/sinbad"
+      username = "sinbad"
+      groups   = ["system:authenticated"]
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/kirk"
+      username = "kirk"
+      groups   = ["system:authenticated"]
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/rackham"
+      username = "rackham"
+      groups   = ["system:authenticated"]
+    },
+    {
+      userarn  = "arn:aws:iam::410341090137:user/${local.name}/skipper/haddock"
+      username = "haddock"
+      groups   = ["system:authenticated"]
+    },
   ]
-
-  # tags = {
-  #   "karpenter.sh/discovery" = local.name
-  # }
 }
 
 module "irsa_vpc_cni" {
@@ -550,53 +585,120 @@ resource "helm_release" "nginx_ingress" {
   }
 }
 
-# module "iam_ahoy_group" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
-#   version = "5.4.0"
 
-#   name = "skippers"
+module "iam_ahoy_group" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
+  version = "5.4.0"
 
-#   attach_iam_self_management_policy = false
-#   custom_group_policies = [
-#     {
-#       name = "skip"
-#       policy = jsonencode({
-#         Version = "2012-10-17"
-#         Statement = [
-#           {
-#             Effect = "Allow"
-#             Action = [
-#               "eks:DescribeCluster",
-#             ],
-#             Resource = [
-#               module.eks.cluster_arn
-#             ]
-#           }
-#         ]
-#       })
-#     }
-#   ]
+  name = "skippers"
 
-#   group_users = [
-#     module.iam_skipper_user.iam_user_name
-#   ]
-# }
+  attach_iam_self_management_policy = false
+  custom_group_policies = [
+    {
+      name = "skip"
+      policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+          {
+            Effect = "Allow"
+            Action = [
+              "eks:DescribeCluster",
+            ],
+            Resource = [
+              module.eks.cluster_arn
+            ]
+          }
+        ]
+      })
+    }
+  ]
 
-# module "iam_skipper_user" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
-#   version = "5.4.0"
+  group_users = module.iam_skipper_user.*.iam_user_name
+}
 
-#   create_iam_user_login_profile = false
+module "iam_skipper_user" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "5.4.0"
 
-#   name = "team-1"
-#   path = "/${local.name}/"
-# }
+  count = length(local.teams)
 
-# output "iam-user-key" {
-#   value = module.iam_skipper_user.iam_access_key_id
-# }
+  create_iam_user_login_profile = false
 
-# output "iam-user-secret" {
-#   value     = module.iam_skipper_user.iam_access_key_secret
-#   sensitive = true
-# }
+  name = local.teams[count.index]
+  path = "/${local.name}/skipper/"
+}
+
+output "iam-user-key" {
+  value = module.iam_skipper_user.*.iam_access_key_id
+}
+output "iam-user-secret-key" {
+  value     = module.iam_skipper_user.*.iam_access_key_secret
+  sensitive = true
+}
+
+resource "kubernetes_namespace" "skipper_namespace" {
+  count = length(local.teams)
+  metadata {
+    name = local.teams[count.index]
+  }
+}
+
+resource "kubernetes_role" "skipper_role" {
+  count = length(local.teams)
+  metadata {
+    name      = "skipper"
+    namespace = local.teams[count.index]
+  }
+  rule {
+    api_groups = ["*"]
+    resources  = ["*"]
+    verbs      = ["*"]
+  }
+}
+
+# Read-all clusterrole for skipper users
+resource "kubernetes_cluster_role" "skipper_cluster_role" {
+  metadata {
+    name = "skipper-read-all"
+  }
+  rule {
+    api_groups = ["*"]
+    resources  = ["*"]
+    verbs      = ["list", "get", "watch"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "skipper_cluster_role_binding" {
+  count = length(local.teams)
+  metadata {
+    name = "skipper-read-all-${local.teams[count.index]}"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = "skipper-read-all"
+  }
+  subject {
+    kind      = "User"
+    name      = module.iam_skipper_user[count.index].iam_user_name
+    namespace = local.teams[count.index]
+  }
+}
+
+resource "kubernetes_role_binding" "skipper_role_binding" {
+  count = length(local.teams)
+  metadata {
+    name      = "skipper"
+    namespace = kubernetes_namespace.skipper_namespace[count.index].metadata[0].name
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = "skipper"
+  }
+  subject {
+    kind      = "User"
+    name      = module.iam_skipper_user[count.index].iam_user_name
+    api_group = "rbac.authorization.k8s.io"
+  }
+}

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: chat
-          image: ttl.sh/thaekaifu8ousha1pho1heemaengaecha7oozod7ohphae4thahv5emoocoh6yae:2h
+          image: ttl.sh/atoeshuid9aedeez2au5shee9im2woogah4eeghoishae4eeleewah2oaxook4ad:1h
           resources:
             limits:
               memory: "128Mi"
