@@ -45,9 +45,9 @@ than having to run complicated `docker run` commands all the time.
 >
 > > BONUS: What do the following terms mean in docker: image, container, repository, tag and registry
 
-## 3. Setting sail (Running in kubernetes)
+## 3. Hoisting the flag (Running in kubernetes)
 
-### Intro
+### Intro to kubernetes
 
 Kubernetes is a great solution for orchestration in the cloud.  
 Similarly to docker compose, it allows us to define a set of containers we want to run.  
@@ -99,7 +99,7 @@ $ kubectl apply -f manifest.yaml
 pod/my-pod created
 ```
 
-And kubernetes will then schedule a pod with on a machine in the cluster.
+And kubernetes will then schedule a pod on a machine in the cluster.
 
 We can get the status of our pod with
 
@@ -123,7 +123,7 @@ Where we can see that the container indeed did as we asked.
 
 ### Exercise
 
-> TASK: Write a pod manifest containing a redis and a chat server, and apply it to kubernetes
+> TASK: Write a pod manifest containing a redis and a chat server, and apply it to kubernetes and see that the pod is running
 
 You'll have to push your docker image to a docker registry. You can use ttl.sh simply with
 
@@ -137,3 +137,24 @@ and now that image will be available to other clients to pull with
 ```sh
 docker pull ttl.sh/my-image-with-some-id:2h
 ```
+
+_Note that you only have write access to the namespace of your teams name_
+
+## 4. Setting sail (Getting resilient)
+
+### Our problems
+
+When we apply a pod directly to kubernetes. It will be scheduled to a node, and it cannot be updated or moved to a different node after that.  
+So let's say that the node in our cluster fails for some reason. Kubernetes can't reschedule the pod, and the server will not be run.  
+For that we will need another resource that can schedule new pods. One of these resources is called a Deployment.
+
+An example deployment can look like this
+
+> TASK: Run your pods as a deployment
+
+## 5. AHOY! (Exposing the application)
+
+> TASK: Expose to the internet with an ingress
+
+Nginx ingress controller, cert-manager and external-dns are available in the cluster.
+external-dns has access to ahoy.wiseflow.io and all it's subdomains
