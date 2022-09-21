@@ -125,6 +125,8 @@ Where we can see that the container indeed did as we asked.
 
 > TASK: Write a pod manifest containing a redis and a chat server, and apply it to kubernetes and see that the pod is running
 
+_Tip: You can test the application by port-forwarding to the pod with `kubectl port-forward [POD] -n [NAMESPACE] localport:containerport`_
+
 You'll have to push your docker image to a docker registry. You can use ttl.sh simply with
 
 ```sh
@@ -142,7 +144,7 @@ _Note that you only have write access to the namespace of your teams name_
 
 ## 4. Setting sail (Getting resilient)
 
-### Our problems
+### Scaling up
 
 When we apply a pod directly to kubernetes. It will be scheduled to a node, and it cannot be updated or moved to a different node after that.  
 So let's say that the node in our cluster fails for some reason. Kubernetes can't reschedule the pod, and the server will not be run.  
@@ -150,7 +152,48 @@ For that we will need another resource that can schedule new pods. One of these 
 
 An example deployment can look like this
 
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  namespace: my-namespace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-deployment
+  template:
+    metadata:
+      labels:
+        app: my-deployment
+    spec:
+      containers:
+        - name: alpine
+          image: alpine:3.16
+          command:
+            - echo
+            - ${GREETING}
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: GREETING
+              value: "Hello, dad"
+```
+
+Kubernetes will take that deployment and try to maintain 2 replicas of the pod specification defined in it's template. We can also update the pod spec, now and kubernetes will roll out the new version.
+
 > TASK: Run your pods as a deployment
+
+### The redis question
+
+The problem with including redis in every pod is that the servers cannot share their data source.
+
+> TASK: Run redis and the chat-server as seperate deployments, and connect the chat-server to redis through a kubernetes service
+>
+> > BONUS: Run multiple chat-servers on the same redis
 
 ## 5. AHOY! (Exposing the application)
 
